@@ -30,7 +30,6 @@
 ##### Код программы: #####
 
 ```python
-import os
 import pygame
 import random
 

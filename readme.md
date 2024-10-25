@@ -13,17 +13,17 @@
 > Получаю:
 > 1) Звуковое сопровождение;
 > 2) Кнопка для отключения звукового сопровождения;
-> 2) Кнопка паузы.
+> 3) Кнопка паузы.
 
 ##### Системный анализ: #####
 
 > Входные данные: `None`    
 > Промежуточные данные: `int screen_width`, `int screen_height`, `tuple black`, `tuple white`, `tuple red`,
-`tuple green`, `tuple blue` `int line_width`, `int line_gap`, `int line_offset`, `int door_width`,
+`tuple green`, `tuple blue`, `int line_width`, `int line_gap`, `int line_offset`, `int door_width`,
 `int max_openings_per_line`, `int player_radius`, `int player_speed`, `int player_x`, `int player_y`, `bool is_muted`,
 `bool is_paused`, `list lines`, `int num_openings`, `list openings`, `int last_opening_bottom`,
-`int button_width`, `int button_height`, `float start_time`, `bool collided`, `float elapsed_time`     
-> Выходные данные: `background_image`, `victory_sound`, `defeat_sound`, `float elapsed_time`
+`int button_width`, `int button_height`, `bool collided`    
+> Выходные данные: `background_image`, `victory_sound.mp3`, `defeat_sound.mp3`, `game_music.mp3`
 ##### Блок схема: #####
 
 ![dimm1.png](dimm1.png)
@@ -33,7 +33,6 @@
 import os
 import pygame
 import random
-import time
 
 # Инициализация Pygame
 pygame.init()
@@ -81,15 +80,12 @@ pygame.mixer.music.play(-1)
 is_muted = False
 is_paused = False
 
-
 # Функция для отрисовки стен
 def draw_walls():
     lines = []
     for i in range(0, screen_width, line_gap):
         num_openings = random.randint(1, max_openings_per_line)
-        openings = sorted(
-            random.sample(range(line_offset + door_width, screen_height - line_offset - door_width - 40), num_openings))
-
+        openings = sorted(random.sample(range(line_offset + door_width, screen_height - line_offset - door_width - 40), num_openings))
         last_opening_bottom = 0
         for opening_top in openings:
             if last_opening_bottom < opening_top:
@@ -98,7 +94,6 @@ def draw_walls():
         if last_opening_bottom < screen_height - 40:
             lines.append(pygame.Rect(i, last_opening_bottom, line_width, screen_height - last_opening_bottom - 40))
     return lines
-
 
 # Функция для отображения сообщения
 def show_message(message):
@@ -109,7 +104,6 @@ def show_message(message):
     screen.blit(text, text_rect)
     pygame.display.update()
     pygame.time.delay(5000)
-
 
 # Функция для обработки паузы и звука
 def handle_buttons():
@@ -131,19 +125,12 @@ def handle_buttons():
         else:
             pygame.mixer.music.unpause()
 
-
 # Функция для отображения сообщения с результатом
-def show_time_message(elapsed_time, result_message):
+def show_time_message(result_message):
     font = pygame.font.Font(None, 36)
-    message = f"Время: {elapsed_time:.2f} секунд"
-    text = font.render(message, True, white)
-    text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2 - 50))
-
-    screen.fill(black)
-    screen.blit(text, text_rect)
-
     result_text = font.render(result_message, True, white)
     result_text_rect = result_text.get_rect(center=(screen_width // 2, screen_height // 2 - 100))
+    screen.fill(black)
     screen.blit(result_text, result_text_rect)
 
     retry_button_rect = pygame.Rect((screen_width - 200) // 2, screen_height // 2, 200, 50)
@@ -173,14 +160,11 @@ def show_time_message(elapsed_time, result_message):
 
         pygame.display.update()
 
-
 # Основная функция
 def main():
-    global player_x, player_y, start_time
+    global player_x, player_y
     lines = draw_walls()
     clock = pygame.time.Clock()
-
-    start_time = time.time()
 
     global pause_button_rect, mute_button_rect
     pause_button_rect = pygame.Rect(screen_width - 210, screen_height - 35, 80, 30)
@@ -207,8 +191,7 @@ def main():
         elif keys[pygame.K_DOWN] and player_y < screen_height - player_radius - 40:
             player_y += player_speed
 
-        player_rect = pygame.Rect(player_x - player_radius, player_y - player_radius, player_radius * 2,
-                                  player_radius * 2)
+        player_rect = pygame.Rect(player_x - player_radius, player_y - player_radius, player_radius * 2, player_radius * 2)
         collided = False
 
         for line in lines:
@@ -220,11 +203,9 @@ def main():
             pygame.mixer.music.pause()
             if not is_muted:
                 defeat_sound.play()
-            elapsed_time = time.time() - start_time
-            show_time_message(elapsed_time, "Проигрыш!")
+            show_time_message("Проигрыш!")
             player_x = screen_width - 12
             player_y = screen_height - 60
-            start_time = time.time()
 
             if not is_muted:
                 pygame.mixer.music.play(-1)
@@ -234,11 +215,9 @@ def main():
             pygame.mixer.music.stop()
             if not is_muted:
                 victory_sound.play()
-            elapsed_time = time.time() - start_time
-            show_time_message(elapsed_time, "Победа!")
+            show_time_message("Победа!")
             player_x = screen_width - 12
             player_y = screen_height - 60
-            start_time = time.time()
 
             if not is_muted:
                 pygame.mixer.music.play(-1)
@@ -251,14 +230,6 @@ def main():
 
         pygame.draw.circle(screen, green, (player_x, player_y), player_radius)
 
-        timer_rect = pygame.Rect(0, screen_height - 30, screen_width, 30)
-        pygame.draw.rect(screen, black, timer_rect)
-
-        elapsed_time = time.time() - start_time
-        timer_font = pygame.font.Font(None, 36)
-        timer_text = timer_font.render(f"Время: {elapsed_time:.2f} сек", True, white)
-        screen.blit(timer_text, (10, screen_height - 30))
-
         pygame.draw.rect(screen, blue, pause_button_rect)
         pygame.draw.rect(screen, blue, mute_button_rect)
 
@@ -270,7 +241,6 @@ def main():
 
         pygame.display.update()
         clock.tick(60)
-
 
 # Запуск основной функции
 if __name__ == "__main__":
@@ -302,9 +272,7 @@ if __name__ == "__main__":
    `draw_walls()`: Функция для отрисовки стен лабиринта, генерирующая случайные отверстия в стенах и возвращающая их
    позиции в виде списка прямоугольников.  
    `show_message(message)`: Функция для отображения текстовых сообщений (например, "Победа!" или "Проигрыш!") на
-   экране.  
-   `show_time_message(elapsed_time, result_message)`: Функция для отображения сообщения с прошедшим временем и
-   результатом игры.  
+   экране.
    `handle_buttons()`: Функция для обработки нажатий на кнопки паузы и звука.
 ##### Вывод по проделанной работе: #####
 
